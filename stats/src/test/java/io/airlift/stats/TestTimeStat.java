@@ -32,7 +32,6 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.fail;
 
-
 public class TestTimeStat
 {
     private static final int VALUES = 1000;
@@ -59,17 +58,16 @@ public class TestTimeStat
         Collections.sort(values);
 
         TimeDistribution allTime = stat.getAllTime();
-        assertEquals(allTime.getCount(), (double)values.size());
+        assertEquals(allTime.getCount(), (double) values.size());
         assertTrue(fuzzyEquals(allTime.getMax(), values.get(values.size() - 1) * 0.001, 0.000_000_000_1));
         assertEquals(allTime.getMin(), values.get(0) * 0.001);
+        assertEquals(allTime.getUnit(), TimeUnit.SECONDS);
 
         assertPercentile("tp50", allTime.getP50(), values, 0.50);
-        assertPercentile("tp50", allTime.getP75(), values, 0.75);
+        assertPercentile("tp75", allTime.getP75(), values, 0.75);
         assertPercentile("tp90", allTime.getP90(), values, 0.90);
         assertPercentile("tp99", allTime.getP99(), values, 0.99);
     }
-
-
 
     @Test
     public void testEmpty()
@@ -118,6 +116,17 @@ public class TestTimeStat
         assertEquals(allTime.getCount(), 1.0);
         assertEquals(allTime.getMin(), 0.010);
         assertEquals(allTime.getMax(), 0.010);
+    }
+
+    @Test
+    public void testUnit()
+    {
+        TimeStat stat = new TimeStat(ticker, TimeUnit.MILLISECONDS);
+        stat.add(1, TimeUnit.SECONDS);
+
+        TimeDistribution allTime = stat.getAllTime();
+        assertEquals(allTime.getMin(), 1000.0);
+        assertEquals(allTime.getMax(), 1000.0);
     }
 
     private static void assertPercentile(String name, double value, List<Long> values, double percentile)

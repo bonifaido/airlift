@@ -1,6 +1,7 @@
 package io.airlift.http.client.jetty;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
@@ -12,6 +13,7 @@ import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.AbstractFuture;
 import io.airlift.http.client.AsyncHttpClient;
 import io.airlift.http.client.BodyGenerator;
+import io.airlift.http.client.ResponseTooLargeException;
 import io.airlift.http.client.HttpClientConfig;
 import io.airlift.http.client.HttpRequestFilter;
 import io.airlift.http.client.Request;
@@ -27,14 +29,18 @@ import org.eclipse.jetty.client.HttpRequest;
 import org.eclipse.jetty.client.Socks4Proxy;
 import org.eclipse.jetty.client.api.ContentProvider;
 import org.eclipse.jetty.client.api.Response;
+import org.eclipse.jetty.client.api.Response.Listener;
 import org.eclipse.jetty.client.api.Result;
-import org.eclipse.jetty.client.util.BufferingResponseListener;
 import org.eclipse.jetty.client.util.BytesContentProvider;
 import org.eclipse.jetty.client.util.InputStreamResponseListener;
 import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.util.HttpCookieStore;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.weakref.jmx.Flatten;
+import org.weakref.jmx.Managed;
+
+import javax.annotation.concurrent.GuardedBy;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -56,6 +62,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.lang.Math.min;
 
 public class JettyHttpClient
         implements AsyncHttpClient
@@ -108,6 +115,10 @@ public class JettyHttpClient
 
         try {
             httpClient.start();
+
+            // remove the GZIP encoding from the client
+            // todo change this when https://bugs.eclipse.org/bugs/show_bug.cgi?id=433690 is resolved
+            httpClient.getContentDecoderFactories().clear();
         }
         catch (Exception e) {
             throw Throwables.propagate(e);
@@ -134,10 +145,10 @@ public class JettyHttpClient
 
         long idleTimeout = Long.MAX_VALUE;
         if (config.getKeepAliveInterval() != null) {
-            idleTimeout = Math.min(idleTimeout, config.getKeepAliveInterval().toMillis());
+            idleTimeout = min(idleTimeout, config.getKeepAliveInterval().toMillis());
         }
         if (config.getReadTimeout() != null) {
-            idleTimeout = Math.min(idleTimeout, config.getReadTimeout().toMillis());
+            idleTimeout = min(idleTimeout, config.getReadTimeout().toMillis());
         }
         if (idleTimeout != Long.MAX_VALUE) {
             httpClient.setIdleTimeout(idleTimeout);
@@ -228,22 +239,9 @@ public class JettyHttpClient
 
         HttpRequest jettyRequest = buildJettyRequest(request);
 
-        final JettyResponseFuture<T, E> future = new JettyResponseFuture<>(request, jettyRequest, responseHandler, stats);
+        JettyResponseFuture<T, E> future = new JettyResponseFuture<>(request, jettyRequest, responseHandler, stats);
 
-        BufferingResponseListener listener = new BufferingResponseListener(Ints.checkedCast(new DataSize(10, Unit.MEGABYTE).toBytes()))
-        {
-            @Override
-            public void onComplete(Result result)
-            {
-                Throwable throwable = result.getFailure();
-                if (throwable != null) {
-                    future.failed(throwable);
-                }
-                else {
-                    future.completed(result.getResponse(), getContent());
-                }
-            }
-        };
+        BufferingResponseListener listener = new BufferingResponseListener(future, Ints.saturatedCast(maxContentLength));
 
         try {
             jettyRequest.send(listener);
@@ -296,6 +294,8 @@ public class JettyHttpClient
     }
 
     @Override
+    @Managed
+    @Flatten
     public RequestStats getStats()
     {
         return stats;
@@ -319,11 +319,6 @@ public class JettyHttpClient
     {
         private final Response response;
         private final CountingInputStream inputStream;
-
-        public JettyResponse(Response response, byte[] content)
-        {
-            this(response, new ByteArrayInputStream(content));
-        }
 
         public JettyResponse(Response response, InputStream inputStream)
         {
@@ -374,6 +369,16 @@ public class JettyHttpClient
         {
             return inputStream;
         }
+
+        @Override
+        public String toString()
+        {
+            return Objects.toStringHelper(this)
+                    .add("statusCode", getStatusCode())
+                    .add("statusMessage", getStatusMessage())
+                    .add("headers", getHeaders())
+                    .toString();
+        }
     }
 
 
@@ -410,6 +415,7 @@ public class JettyHttpClient
             this.stats = stats;
         }
 
+        @Override
         public String getState()
         {
             return state.get().toString();
@@ -423,7 +429,7 @@ public class JettyHttpClient
             return super.cancel(mayInterruptIfRunning);
         }
 
-        protected void completed(Response response, byte[] content)
+        protected void completed(Response response, InputStream content)
         {
             if (state.get() == JettyAsyncHttpState.CANCELED) {
                 return;
@@ -442,7 +448,7 @@ public class JettyHttpClient
             set(value);
         }
 
-        private T processResponse(Response response, byte[] content)
+        private T processResponse(Response response, InputStream content)
                 throws E
         {
             // this time will not include the data fetching portion of the response,
@@ -616,7 +622,7 @@ public class JettyHttpClient
             {
                 try {
                     // must copy array since it could be reused
-                    chunks.put(ByteBuffer.wrap(new byte[]{(byte) b}));
+                    chunks.put(ByteBuffer.wrap(new byte[] {(byte) b}));
                 }
                 catch (InterruptedException e) {
                     throw new InterruptedIOException();
@@ -647,6 +653,70 @@ public class JettyHttpClient
                 catch (InterruptedException e) {
                     throw new InterruptedIOException();
                 }
+            }
+        }
+    }
+
+    private static class BufferingResponseListener
+            extends Listener.Adapter
+    {
+        private final JettyResponseFuture<?, ?> future;
+        private final int maxLength;
+
+        @GuardedBy("this")
+        private byte[] buffer = new byte[(int) new DataSize(64, Unit.KILOBYTE).toBytes()];
+        @GuardedBy("this")
+        private int size;
+
+        public BufferingResponseListener(JettyResponseFuture<?, ?> future, int maxLength)
+        {
+            this.future = checkNotNull(future, "future is null");
+            Preconditions.checkArgument(maxLength > 0, "maxLength must be greater than zero");
+            this.maxLength = maxLength;
+        }
+
+        @Override
+        public void onHeaders(Response response)
+        {
+            long length = response.getHeaders().getLongField(HttpHeader.CONTENT_LENGTH.asString());
+            if (length > maxLength) {
+                response.abort(new ResponseTooLargeException());
+            }
+            if (length > buffer.length) {
+                buffer = Arrays.copyOf(buffer, Ints.saturatedCast(length));
+            }
+        }
+
+        @Override
+        public synchronized void onContent(Response response, ByteBuffer content)
+        {
+            int length = content.remaining();
+            int requiredCapacity = size + length;
+            if (requiredCapacity > buffer.length) {
+                if (requiredCapacity > maxLength) {
+                    response.abort(new ResponseTooLargeException());
+                    return;
+                }
+
+                // newCapacity = min(log2ceiling(requiredCapacity), maxLength);
+                int newCapacity = min(Integer.highestOneBit(requiredCapacity) << 1, maxLength);
+
+                buffer = Arrays.copyOf(buffer, newCapacity);
+            }
+
+            content.get(buffer, size, length);
+            size += length;
+        }
+
+        @Override
+        public synchronized void onComplete(Result result)
+        {
+            Throwable throwable = result.getFailure();
+            if (throwable != null) {
+                future.failed(throwable);
+            }
+            else {
+                future.completed(result.getResponse(), new ByteArrayInputStream(buffer, 0, size));
             }
         }
     }
