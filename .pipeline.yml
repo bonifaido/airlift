@@ -2,7 +2,7 @@ cluster:
   name: "nodejs-example2323"
   provider: "google"
   google_project: "gabo-project"
-  google_node_count: "2"
+  google_node_count: 2
   google_gke_version: "1.9.6-gke.1"
 
 # generic Banzai Cloud `spotguide` for a nodejs application
