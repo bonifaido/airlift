@@ -1,0 +1,20 @@
+cluster:
+  name: "nodejs-example2323"
+  provider: "google"
+  google_project: "gabo-project"
+  google_node_count: "2"
+  google_gke_version: "1.9.6-gke.1"
+
+# generic Banzai Cloud `spotguide` for a nodejs application
+pipeline:
+
+# this step builds and uploads the application image to the image registry (docker)
+  build_container:
+    image: plugins/docker
+    dockerfile: Dockerfile
+    repo: banzaicloud/nodejs-example
+    tags: "{{ printf \"dev-%s\" (.DRONE_COMMIT_SHA | trunc 7) }}"
+    log: debug
+    secrets: [plugin_username, plugin_password]
+    group: test123
+    pull: true
