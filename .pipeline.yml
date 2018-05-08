@@ -15,6 +15,5 @@ pipeline:
     repo: banzaicloud/nodejs-example
     tags: "{{ printf \"dev-%s\" (.DRONE_COMMIT_SHA | trunc 7) }}"
     log: debug
-    secrets: [plugin_username, plugin_password]
     group: test123
     pull: true
