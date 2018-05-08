@@ -7,7 +7,6 @@ cluster:
 
 # generic Banzai Cloud `spotguide` for a nodejs application
 pipeline:
-
 # this step builds and uploads the application image to the image registry (docker)
   build_container:
     image: plugins/docker
