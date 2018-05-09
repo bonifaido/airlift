@@ -1,5 +1,5 @@
 cluster:
-  name: "nodejs-example2323412be"
+  name: "nodejs-example23234teibe"
   provider: "google"
   google_project: "gabo-project"
   google_node_count: 2
