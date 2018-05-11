@@ -1,5 +1,5 @@
 cluster:
-  name: "drone-nodejs-example-google-5"
+  name: "drone-nodejs-example-google-6"
   provider: "google"
   secret_id: "c4305cbe-3664-417c-ab7a-e53e102a39a4"
 
