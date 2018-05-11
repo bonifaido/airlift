@@ -1,9 +1,6 @@
 cluster:
   name: "nodejs-example23234secf"
-  provider: "google"
-  google_project: "gabo-project"
-  google_node_count: 2
-  google_gke_version: "1.9.6-gke.1"
+  provider: "amazon"
   secret_id: "444a6010-a6a5-4510-a465-e9d2719887af"
 
 # generic Banzai Cloud `spotguide` for a nodejs application
