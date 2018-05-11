@@ -12,5 +12,4 @@ pipeline:
     repo: banzaicloud/nodejs-example
     tags: "{{ printf \"dev-%s\" (.DRONE_COMMIT_SHA | trunc 7) }}"
     log: debug
-    group: test1234
     pull: true
