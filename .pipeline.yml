@@ -1,7 +1,7 @@
 cluster:
   name: "drone-nodejs-example-4"
-  provider: "amazon"
-  secret_id: "444a6010-a6a5-4510-a465-e9d2719887af"
+  provider: "google"
+  secret_id: "c4305cbe-3664-417c-ab7a-e53e102a39a4"
 
 # generic Banzai Cloud `spotguide` for a nodejs application
 pipeline:
