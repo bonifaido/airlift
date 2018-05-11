@@ -1,5 +1,5 @@
 cluster:
-  name: "drone-nodejs-example-3"
+  name: "drone-nodejs-example-4"
   provider: "amazon"
   secret_id: "444a6010-a6a5-4510-a465-e9d2719887af"
 
