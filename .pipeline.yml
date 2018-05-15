@@ -3,9 +3,7 @@ cluster:
   provider: "google"
   secret_id: "c4305cbe-3664-417c-ab7a-e53e102a39a4"
 
-# generic Banzai Cloud `spotguide` for a nodejs application
 pipeline:
-# this step builds and uploads the application image to the image registry
   print_env:
     image: golang:1.10-alpine
     commands:
