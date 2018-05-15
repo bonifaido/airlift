@@ -10,6 +10,3 @@ pipeline:
     image: golang:1.10-alpine
     commands:
     - env
-    repo: banzaicloud/nodejs-example
-    tags: "{{ printf \"test-%s\" (.DRONE_COMMIT_SHA | trunc 7) }}"
-    log: debug
