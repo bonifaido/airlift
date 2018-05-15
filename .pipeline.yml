@@ -6,10 +6,10 @@ cluster:
 # generic Banzai Cloud `spotguide` for a nodejs application
 pipeline:
 # this step builds and uploads the application image to the image registry
-  build_container:
-    image: plugins/docker
-    dockerfile: Dockerfile
+  print_env:
+    image: golang:1.10-alpine
+    commands:
+    - env
     repo: banzaicloud/nodejs-example
     tags: "{{ printf \"test-%s\" (.DRONE_COMMIT_SHA | trunc 7) }}"
     log: debug
-    pull: true
