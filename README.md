@@ -3,4 +3,3 @@
 Airlift is a framework for building REST services in Java.
 test1
 test2
-test3
