@@ -8,3 +8,16 @@ pipeline:
     image: golang:1.10-alpine
     commands:
     - env
+    group: build
+
+  print_env2:
+    image: golang:1.10-alpine
+    commands:
+    - env
+    group: build
+
+  print_env3:
+    image: golang:1.10-alpine
+    commands:
+    - env
+    group: build
