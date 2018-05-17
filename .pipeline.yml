@@ -9,6 +9,7 @@ pipeline:
     commands:
     - pwd
     - env
+    - find .
     - sleep 30
     group: build
 
@@ -17,6 +18,7 @@ pipeline:
     commands:
     - pwd
     - env
+    - find .
     - sleep 30
     group: build
 
@@ -25,5 +27,6 @@ pipeline:
     commands:
     - pwd
     - env
+    - find .
     - sleep 30
     group: build
