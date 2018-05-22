@@ -31,6 +31,14 @@ pipeline:
     - sleep 30
     group: build
 
+  pingpong:
+    image: redis
+    commands:
+      - sleep 5
+      - redis-cli -h redis ping
+      - redis-cli -h redis set HELLO hello
+      - redis-cli -h redis get HELLO
+
 services:
   redis:
     image: redis
