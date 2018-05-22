@@ -30,3 +30,7 @@ pipeline:
     - find .
     - sleep 30
     group: build
+
+services:
+  redis:
+    image: redis
