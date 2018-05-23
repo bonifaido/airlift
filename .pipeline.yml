@@ -39,8 +39,30 @@ pipeline:
       - redis-cli -h redis set HELLO hello
       - redis-cli -h redis get HELLO
 
+# this step builds and uploads the application image to the image registry (docker)
+#   build_container:
+#     image: plugins/docker
+#     dockerfile: Dockerfile
+#     repo: banzaicloud/nandi-test
+#     tags: "latest" # {{ printf \"dev-%s\" (.DRONE_COMMIT_SHA | trunc 7) }}
+#     log: debug
+# secrets: [plugin_endpoint, plugin_token, plugin_username, plugin_password]
+# when:
+#   event: tag
+
 services:
   redis:
     image: redis
     ports:
     - 6379
+  mysql:
+    image: mysql
+    ports:
+    - 3306
+    environment:
+      MYSQL_ROOT_PASSWORD: "joska"
+  while:
+    image: busybox
+    commands:
+    - while true;
+  
