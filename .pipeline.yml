@@ -64,5 +64,5 @@ services:
   while:
     image: busybox
     commands:
-    - while true;
+    - sleep 1000
   
