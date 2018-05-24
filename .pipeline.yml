@@ -40,15 +40,13 @@ pipeline:
       - redis-cli -h redis get HELLO
 
 # this step builds and uploads the application image to the image registry (docker)
-#   build_container:
-#     image: plugins/docker
-#     dockerfile: Dockerfile
-#     repo: banzaicloud/nandi-test
-#     tags: "latest" # {{ printf \"dev-%s\" (.DRONE_COMMIT_SHA | trunc 7) }}
-#     log: debug
-# secrets: [plugin_endpoint, plugin_token, plugin_username, plugin_password]
-# when:
-#   event: tag
+  build_container:
+    image: plugins/docker
+    dockerfile: Dockerfile
+    repo: banzaicloud/nodejs-example
+    tags: "nandi-test" # {{ printf \"dev-%s\" (.DRONE_COMMIT_SHA | trunc 7) }}
+    log: debug
+#secrets: [plugin_endpoint, plugin_token, plugin_username, plugin_password]
 
 services:
   redis:
