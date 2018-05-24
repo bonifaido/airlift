@@ -1,7 +1,6 @@
 cluster:
   name: "drone-kubernetes-example-google"
   provider: "google"
-  #  secret_id: "2a8c714c-dfa3-4e77-944d-c217bde89f3b"
 
 pipeline:
   print_env:
