@@ -1,0 +1,2 @@
+FROM scratch
+# Do nothing
