@@ -57,7 +57,7 @@ services:
     ports:
     - 3306
     environment:
-      MYSQL_ROOT_PASSWORD: "joska"
+      MYSQL_ROOT_PASSWORD: "joskapista"
   while:
     image: busybox
     commands:
