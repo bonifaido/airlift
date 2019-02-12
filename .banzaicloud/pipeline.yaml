@@ -1,9 +1,9 @@
 cluster:
-  name: "drone-kubernetes-example-google"
-  provider: "google"
+  cloud: local
+  name: local
+  properties: null
 
-pipeline:
-  print_env:
+print_env:
     image: golang:1.10-alpine
     commands:
     - pwd
