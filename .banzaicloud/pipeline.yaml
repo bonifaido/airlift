@@ -1,6 +1,6 @@
 cluster:
   cloud: local
-  name: local
+  name: minikube
   properties: null
 
 print_env:
